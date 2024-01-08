@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="P_ModbusMaster" Id="{47f056c9-de1d-497e-b64a-b4e08072a4b7}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_ModbusMaster
+VAR
+	MB 						: ModbusRtuMaster_KL6x22B;	// change to ModbusRtuMaster_PcCom in case of COM Port
+	State					: UINT;
+	nLastErrorState			: UINT;
+	nLastError				: MODBUS_ERRORS;
+	arrRegs					: ARRAY[0..9] OF WORD;
+	arrRegs2				: ARRAY[0..9] OF WORD;
+	arrCoils				: ARRAY[0..9] OF WORD;
+	arrCoils2				: ARRAY[0..9] OF WORD;
+	arrInputs				: ARRAY[0..9] OF WORD;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE State OF
+	
+	0:	(*initialization*)
+		MB(Execute:=FALSE);
+		State:=State+10;
+		
+	10: (*Reading registers from Outputs or Memory area*)
+		(*Function 3(Read Holding Registers)*)
+		MB.ReadRegs(
+			UnitID:=1 , 								(*Slave address*)
+			Quantity:=10 ,								(*Number of data words to be read*)
+			MBAddr:=16#4000,							(*Modbus (register) address*)
+			cbLength:=20,								(*Size of the data variable used for send or read actions in bytes.*)
+			pMemoryAddr:=ADR(arrRegs) ,					(*Address of the variable to which the query result is returned*)
+			Execute:=TRUE,
+			timeout:=T#1S,
+			Error=>);
+		
+		IF NOT MB.BUSY THEN
+			IF NOT MB.Error THEN
+				State:=State+10;
+			ELSE
+				nLastErrorState:=State;
+				nLastError:=MB.ErrorId;
+				State:=999;
+			END_IF
+			MB.ReadRegs(Execute:=FALSE);
+		END_IF
+	
+	20:
+		(*Writing registers to Outputs or Memory area*)
+		(*Function 16(Write Holding Registers) *)	
+		MB.WriteRegs(
+			UnitID:=1 , 								(*Slave address*)
+			Quantity:=10 ,								(*Number of data words to be written*)
+			MBAddr:=16#4000,							(*Modbus (register) address*)
+			cbLength:=20,								(*Size of the data variable used for send or read actions in bytes.*)
+			pMemoryAddr:=ADR(arrRegs2) ,				(*Address of the variable storing the data to be written*)
+			Execute:=TRUE,
+			timeout:=T#1S,
+			Error=>);
+		
+		IF NOT MB.BUSY THEN
+			IF NOT MB.Error THEN
+				State:=State+10;
+			ELSE
+				nLastErrorState:=State;
+				nLastError:=MB.ErrorId;
+				State:=999;
+			END_IF
+			MB.WriteRegs(Execute:= FALSE);
+		END_IF
+	
+	30:
+		(*Reading bits from Output memory*)
+		(*Function 1(Read coils)*)
+		MB.ReadCoils(
+			UnitID:=1 , 								(*Slave address*)
+			Quantity:=SIZEOF(arrCoils)*8 ,				(*Number of data bits to be read*)
+			MBAddr:=16#800,								(*Modbus address - Output 16#800*)
+			cbLength:=SIZEOF(arrCoils),					(*Size of the data variable used for send or read actions in bytes*)
+			pMemoryAddr:=ADR(arrCoils) ,				(*Address of the variable to which the query result is returned*)
+			Execute:=TRUE,
+			timeout:=T#1S,
+			Error=>);
+		
+		IF NOT MB.BUSY THEN
+			IF NOT MB.Error THEN
+				State:=State+10;
+			ELSE
+				nLastErrorState:=State;
+				nLastError:=MB.ErrorId;
+				State:=999;
+			END_IF
+			MB.ReadCoils(Execute:=FALSE);
+		END_IF
+		
+	40:
+		(*Writing bits to Outputs area*)
+		(*Function 15(Write Multiple Coils)*)
+		MB.WriteMultipleCoils(
+			UnitID:=1 , 								(*Slave address*)
+			Quantity:=SIZEOF(arrCoils2)*8 ,				(*Number of data bits to be written*)
+			MBAddr:=16#800,								(*Modbus address - Output 16#800*)
+			cbLength:=SIZEOF(arrCoils2),				(*Size of the data variable used for send or read actions in bytes*)
+			pMemoryAddr:=ADR(arrCoils2) ,				(*Address of the variable storing the data to be written*)
+			Execute:=TRUE,
+			timeout:=T#1S,
+			Error=>);
+		
+		IF NOT MB.BUSY THEN
+			IF NOT MB.Error THEN
+				State:=State+10;
+			ELSE
+				nLastErrorState:=State;
+				nLastError:=MB.ErrorId;
+				State:=999;
+			END_IF
+			MB.WriteMultipleCoils(Execute:=FALSE);
+		END_IF
+		
+	50:
+		(*Reading registers from Inputs area*)
+		(*Function 4(Read Input Registers)*)
+		MB.ReadInputRegs(
+			UnitID:=1 , 								(*Slave address*)
+			Quantity:=10 ,								(*Number of data words to be read*)
+			MBAddr:=16#0	,							(*Modbus (register) address*)
+			cbLength:=20,								(*Size of the data variable used for send or read actions in bytes.*)
+			pMemoryAddr:=ADR(arrInputs) ,				(*Address of the variable to which the query result is returned*)
+			Execute:=TRUE,
+			timeout :=T#1S,
+			Error=> );
+		
+		IF NOT MB.BUSY THEN
+			IF NOT MB.Error THEN
+				State:=0;
+			ELSE
+				nLastErrorState:=State;
+				nLastError:=MB.ErrorId;
+				State:=999;
+			END_IF
+			MB.ReadInputRegs(Execute:=FALSE);
+		END_IF
+			
+		999:(*Error handling - subject for modification*) 
+			MB(Execute:=FALSE);
+			State:=0;
+			
+			
+END_CASE]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

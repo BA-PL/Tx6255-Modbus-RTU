@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="P_ModbusSlave" Id="{cea7e59a-70b5-4d53-9850-fa7925556b07}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_ModbusSlave
+VAR
+	arrInput	: ARRAY[0..19] OF WORD;
+	arrOutput	: ARRAY[0..19] OF WORD;
+	arrMemory	: ARRAY[0..19] OF WORD;
+	MB			: ModbusRtuSlave_KL6x22B;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[MB(
+	UnitID:=1 ,
+	AdrInputs:= ADR(arrInput),
+	SizeInputBytes:=SIZEOF(arrInput) ,
+	AdrOutputs:=ADR(arrOutput) ,
+	SizeOutputBytes:=SIZEOF(arrOutput) ,
+	AdrMemory:=ADR(arrMemory) ,
+	SizeMemoryBytes:=SIZEOF(arrMemory) ,
+	ErrorId=> );]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
